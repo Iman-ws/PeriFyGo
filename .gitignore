@@ -1,0 +1,14 @@
+# Go build
+bin/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# GoLand
+.idea/
+*.iml
+
+# OS
+*.DS_Store
