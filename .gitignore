@@ -1,14 +1,20 @@
-# Go build
-bin/
-build/
+# Binaries for programs and plugins
 *.exe
+*.exe~
 *.dll
 *.so
 *.dylib
+*.test
 
-# GoLand
+# Go build
+/build/
+/bin/
+/out/
+main
+
+# GoLand / IntelliJ
 .idea/
 *.iml
 
-# OS
-*.DS_Store
+# MacOS
+.DS_Store
