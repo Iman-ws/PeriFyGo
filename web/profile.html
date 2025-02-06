@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile - PeriFyGo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <h1 class="site-title">PeriFyGo</h1>
+    <nav class="site-nav">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="catalog.html">Catalog</a></li>
+        <li><a href="profile.html" class="nav-profile active">Profile</a></li>
+        <li><a href="login.html" class="nav-login">Login</a></li>
+        <li><a href="register.html" class="nav-register">Register</a></li>
+        <li><a href="admin.html" class="nav-admin" style="display:none;">Admin Panel</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="profile-section">
+  <div class="container">
+    <h2>Your Profile</h2>
+    <div id="profileContent">
+      <!-- Profile info will be loaded here -->
+    </div>
+    <button id="logoutBtn" class="btn">Log Out</button>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; 2025 PeriFyGo. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      document.getElementById("profileContent").innerHTML = "<p>Please log in to view your profile.</p>";
+      return;
+    }
+    fetch('/profile', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+            .then(response => {
+              if(response.status === 401) {
+                throw new Error("Unauthorized. Please log in again.");
+              }
+              return response.json();
+            })
+            .then(profile => {
+              let html = `
+          <p><strong>Name:</strong> ${profile.name}</p>
+          <p><strong>Email:</strong> ${profile.email}</p>
+          <p><strong>Role:</strong> ${profile.role}</p>
+          <p><strong>Email Verified:</strong> ${profile.verified ? "Yes" : "No"}</p>
+        `;
+              document.getElementById("profileContent").innerHTML = html;
+            })
+            .catch(error => {
+              console.error("Error fetching profile:", error);
+              document.getElementById("profileContent").innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", function() {
+    localStorage.removeItem("jwtToken");
+    localStorage.removeItem("userRole");
+    window.location.href = "index.html";
+  });
+</script>
+
+<script>
+  // Dynamic Navigation Script
+  document.addEventListener("DOMContentLoaded", function(){
+    const token = localStorage.getItem("jwtToken");
+    const role = localStorage.getItem("userRole");
+    const navLogin = document.querySelectorAll(".nav-login");
+    const navRegister = document.querySelectorAll(".nav-register");
+    const navProfile = document.querySelectorAll(".nav-profile");
+    const navAdmin = document.querySelectorAll(".nav-admin");
+
+    if(token) {
+      navLogin.forEach(el => el.style.display = "none");
+      navRegister.forEach(el => el.style.display = "none");
+      navProfile.forEach(el => el.style.display = "inline-block");
+      if(role === "admin") {
+        navAdmin.forEach(el => el.style.display = "inline-block");
+      }
+    } else {
+      navProfile.forEach(el => el.style.display = "none");
+      navAdmin.forEach(el => el.style.display = "none");
+    }
+  });
+</script>
+</body>
+</html>

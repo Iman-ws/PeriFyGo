@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - PeriFyGo</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Styles for tab navigation in the admin panel */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #003049;
+      color: #fff;
+      margin: 0 5px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+    .tab.active {
+      background-color: #ffdd57;
+      color: #003049;
+    }
+    .admin-section {
+      display: none;
+    }
+    .admin-section.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <h1 class="site-title">Admin Panel</h1>
+    <nav class="site-nav">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="admin.html" class="nav-admin active">Admin Panel</a></li>
+        <li><a href="catalog.html">Catalog</a></li>
+        <li><a href="profile.html" class="nav-profile">Profile</a></li>
+        <li><a href="login.html" class="nav-login">Login</a></li>
+        <li><a href="register.html" class="nav-register">Register</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Tab navigation -->
+  <div class="tabs">
+    <div class="tab active" data-target="usersTab">Manage Users</div>
+    <div class="tab" data-target="productsTab">Manage Products</div>
+    <div class="tab" data-target="messageTab">Send Message</div>
+  </div>
+
+  <!-- Manage Users Section -->
+  <section id="usersTab" class="admin-section active">
+    <h2>Manage Users</h2>
+    <input type="text" id="userFilter" placeholder="Filter by name or email">
+    <button id="filterUsersBtn" class="btn">Filter</button>
+    <table id="usersTable">
+      <thead>
+      <tr>
+        <th>Email</th>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Verified</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <!-- User rows will be injected here -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Manage Products Section -->
+  <section id="productsTab" class="admin-section">
+    <h2>Manage Products</h2>
+    <table id="productsTable">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Created At</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <!-- Product rows will be injected here -->
+      </tbody>
+    </table>
+    <h3>Add New Product</h3>
+    <form id="addProductForm">
+      <div class="form-group">
+        <input type="text" id="prodName" placeholder="Product Name" required>
+      </div>
+      <div class="form-group">
+        <input type="text" id="prodDescription" placeholder="Description" required>
+      </div>
+      <div class="form-group">
+        <input type="number" step="0.01" id="prodPrice" placeholder="Price" required>
+      </div>
+      <div class="form-group">
+        <input type="text" id="prodImage" placeholder="Image URL" required>
+      </div>
+      <button type="submit" class="btn">Add Product</button>
+    </form>
+  </section>
+
+  <!-- Send Message Section -->
+  <section id="messageTab" class="admin-section">
+    <h2>Send Message to User</h2>
+    <form id="sendMessageForm">
+      <div class="form-group">
+        <input type="email" id="msgEmail" placeholder="Recipient Email" required>
+      </div>
+      <div class="form-group">
+        <input type="text" id="msgSubject" placeholder="Subject" required>
+      </div>
+      <div class="form-group">
+        <textarea id="msgBody" placeholder="Message" required></textarea>
+      </div>
+      <button type="submit" class="btn">Send Message</button>
+    </form>
+  </section>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; 2025 PeriFyGo. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  // Tab switching functionality
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const target = this.getAttribute('data-target');
+      document.querySelectorAll('.admin-section').forEach(section => {
+        section.classList.remove('active');
+        if(section.id === target) {
+          section.classList.add('active');
+        }
+      });
+    });
+  });
+
+  // Load Users
+  function loadUsers(filter = "") {
+    const token = localStorage.getItem("jwtToken");
+    fetch('/admin/users' + (filter ? '?filter=' + encodeURIComponent(filter) : ''), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+            .then(response => response.json())
+            .then(users => {
+              const tbody = document.querySelector('#usersTable tbody');
+              let html = "";
+              users.forEach(user => {
+                html += `
+            <tr data-id="${user.id}">
+              <td>${user.email}</td>
+              <td>${user.name}</td>
+              <td>${user.role}</td>
+              <td>${user.verified ? "Yes" : "No"}</td>
+              <td>
+                <button class="btn edit-user-btn" data-id="${user.id}">Edit</button>
+                <button class="btn delete-user-btn" data-id="${user.id}">Delete</button>
+              </td>
+            </tr>
+          `;
+              });
+              tbody.innerHTML = html;
+              addUserEventListeners();
+            })
+            .catch(error => console.error("Error loading users:", error));
+  }
+
+  function addUserEventListeners() {
+    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const userId = this.getAttribute('data-id');
+        alert("Edit user: " + userId);
+        // Implement edit functionality...
+      });
+    });
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const userId = this.getAttribute('data-id');
+        if(confirm("Are you sure you want to delete this user?")) {
+          deleteUser(userId);
+        }
+      });
+    });
+  }
+
+  function deleteUser(userId) {
+    const token = localStorage.getItem("jwtToken");
+    fetch(`/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert("User deleted successfully");
+              loadUsers();
+            })
+            .catch(error => console.error("Error deleting user:", error));
+  }
+
+  // Load Products
+  function loadProducts() {
+    const token = localStorage.getItem("jwtToken");
+    fetch('/products', { method: 'GET' })
+            .then(response => response.json())
+            .then(data => {
+              const tbody = document.querySelector('#productsTable tbody');
+              let html = "";
+              data.products.forEach(product => {
+                html += `
+            <tr data-id="${product.id}">
+              <td>${product.name}</td>
+              <td>${product.description}</td>
+              <td>$${product.price}</td>
+              <td>${new Date(product.created_at).toLocaleString()}</td>
+              <td>
+                <button class="btn edit-product-btn" data-id="${product.id}">Edit</button>
+                <button class="btn delete-product-btn" data-id="${product.id}">Delete</button>
+              </td>
+            </tr>
+          `;
+              });
+              tbody.innerHTML = html;
+              addProductEventListeners();
+            })
+            .catch(error => console.error("Error loading products:", error));
+  }
+
+  function addProductEventListeners() {
+    document.querySelectorAll('.edit-product-btn').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const productId = this.getAttribute('data-id');
+        alert("Edit product: " + productId);
+        // Implement product edit functionality...
+      });
+    });
+    document.querySelectorAll('.delete-product-btn').forEach(btn => {
+      btn.addEventListener('click', function(){
+        const productId = this.getAttribute('data-id');
+        if(confirm("Are you sure you want to delete this product?")) {
+          deleteProduct(productId);
+        }
+      });
+    });
+  }
+
+  function deleteProduct(productId) {
+    const token = localStorage.getItem("jwtToken");
+    fetch(`/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert("Product deleted successfully");
+              loadProducts();
+            })
+            .catch(error => console.error("Error deleting product:", error));
+  }
+
+  // Handle add product form submission.
+  document.getElementById("addProductForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const newProduct = {
+      name: document.getElementById("prodName").value,
+      description: document.getElementById("prodDescription").value,
+      price: parseFloat(document.getElementById("prodPrice").value),
+      image_url: document.getElementById("prodImage").value
+    };
+    const token = localStorage.getItem("jwtToken");
+    fetch('/products', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(newProduct)
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert("Product added successfully");
+              loadProducts();
+            })
+            .catch(error => console.error("Error adding product:", error));
+  });
+
+  // Handle send message form submission.
+  document.getElementById("sendMessageForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const messageData = {
+      email: document.getElementById("msgEmail").value,
+      subject: document.getElementById("msgSubject").value,
+      message: document.getElementById("msgBody").value
+    };
+    const token = localStorage.getItem("jwtToken");
+    fetch('/admin/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(messageData)
+    })
+            .then(response => response.json())
+            .then(data => {
+              alert("Message sent successfully");
+            })
+            .catch(error => console.error("Error sending message:", error));
+  });
+
+  // Initial load for Users and Products when admin panel opens.
+  document.addEventListener("DOMContentLoaded", function() {
+    loadUsers();
+    loadProducts();
+  });
+</script>
+
+<script>
+  // Dynamic Navigation Script (applies to admin page as well)
+  document.addEventListener("DOMContentLoaded", function(){
+    const token = localStorage.getItem("jwtToken");
+    const role = localStorage.getItem("userRole");
+    const navLogin = document.querySelectorAll(".nav-login");
+    const navRegister = document.querySelectorAll(".nav-register");
+    const navProfile = document.querySelectorAll(".nav-profile");
+    const navAdmin = document.querySelectorAll(".nav-admin");
+
+    if(token) {
+      navLogin.forEach(el => el.style.display = "none");
+      navRegister.forEach(el => el.style.display = "none");
+      navProfile.forEach(el => el.style.display = "inline-block");
+      if(role === "admin") {
+        navAdmin.forEach(el => el.style.display = "inline-block");
+      }
+    } else {
+      navProfile.forEach(el => el.style.display = "none");
+      navAdmin.forEach(el => el.style.display = "none");
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Catalog - PeriFyGo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Header with Dynamic Navigation -->
+<header class="site-header">
+  <div class="container">
+    <h1 class="site-title">PeriFyGo</h1>
+    <nav class="site-nav">
+      <ul>
+        <li><a href="index.html" class="nav-home">Home</a></li>
+        <li><a href="catalog.html" class="nav-catalog active">Catalog</a></li>
+        <li><a href="login.html" class="nav-login">Login</a></li>
+        <li><a href="register.html" class="nav-register">Register</a></li>
+        <li><a href="profile.html" class="nav-profile" style="display:none;">Profile</a></li>
+        <li><a href="admin.html" class="nav-admin" style="display:none;">Admin Panel</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- Catalog Filter Section (опционально, если нужен поиск/сортировка) -->
+<section class="catalog-filter">
+  <div class="container">
+    <form id="filterForm">
+      <input type="text" id="filter" name="filter" placeholder="Search products by name">
+      <select id="sort" name="sort">
+        <option value="">Sort by</option>
+        <option value="name">Name (A-Z)</option>
+        <option value="-name">Name (Z-A)</option>
+        <option value="price">Price (Low to High)</option>
+        <option value="-price">Price (High to Low)</option>
+      </select>
+      <button type="submit" class="btn">Apply</button>
+    </form>
+  </div>
+</section>
+
+<!-- Catalog Section -->
+<section class="catalog-section">
+  <div class="container">
+    <h2>Product Catalog</h2>
+    <div id="catalog" class="catalog-grid">
+      <!-- Product cards will be injected here dynamically -->
+    </div>
+    <!-- Pagination Controls -->
+    <div id="pagination" class="pagination-controls"></div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; 2025 PeriFyGo. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- Dynamic Navigation Script -->
+<script>
+  // Adjust navigation links based on login state.
+  document.addEventListener("DOMContentLoaded", function(){
+    const token = localStorage.getItem("jwtToken");
+    const role = localStorage.getItem("userRole");
+    const navLogin = document.querySelectorAll(".nav-login");
+    const navRegister = document.querySelectorAll(".nav-register");
+    const navProfile = document.querySelectorAll(".nav-profile");
+    const navAdmin = document.querySelectorAll(".nav-admin");
+
+    if(token) {
+      // Hide Login and Register links if logged in.
+      navLogin.forEach(el => el.style.display = "none");
+      navRegister.forEach(el => el.style.display = "none");
+      // Show Profile link.
+      navProfile.forEach(el => el.style.display = "inline-block");
+      // If role is admin, show Admin Panel link.
+      if(role === "admin") {
+        navAdmin.forEach(el => el.style.display = "inline-block");
+      }
+    } else {
+      navProfile.forEach(el => el.style.display = "none");
+      navAdmin.forEach(el => el.style.display = "none");
+    }
+  });
+</script>
+
+<!-- Catalog Loading Script -->
+<script>
+  let currentPage = 1;
+  const limit = 9; // products per page
+
+  // Function to load products from server.
+  function loadProducts() {
+    const filter = document.getElementById('filter').value;
+    const sort = document.getElementById('sort').value;
+    const url = `/products?filter=${encodeURIComponent(filter)}&sort=${encodeURIComponent(sort)}&page=${currentPage}&limit=${limit}`;
+
+    fetch(url)
+            .then(response => response.json())
+            .then(data => {
+              const catalogDiv = document.getElementById('catalog');
+              if (!data.products || data.products.length === 0) {
+                catalogDiv.innerHTML = "<p class='text-center'>No products available at the moment.</p>";
+                document.getElementById('pagination').innerHTML = "";
+                return;
+              }
+              let html = "";
+              data.products.forEach(product => {
+                html += `
+            <div class="product-card">
+              <img src="${product.image_url || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="${product.name}">
+              <div class="product-info">
+                <h3>${product.name}</h3>
+                <p>${product.description}</p>
+                <span class="price">$${product.price}</span>
+              </div>
+            </div>
+          `;
+              });
+              catalogDiv.innerHTML = html;
+              renderPagination(data.page, data.limit, data.count);
+            })
+            .catch(error => {
+              console.error('Error fetching products:', error);
+              document.getElementById('catalog').innerText = "Failed to load catalog.";
+            });
+  }
+
+  // Function to render pagination controls.
+  function renderPagination(page, limit, count) {
+    const paginationDiv = document.getElementById('pagination');
+    let html = "";
+    if (page > 1) {
+      html += `<button class="btn pagination-btn" onclick="changePage(${page - 1})">Previous</button>`;
+    }
+    html += `<span class="pagination-info">Page ${page}</span>`;
+    if (count === limit) {
+      html += `<button class="btn pagination-btn" onclick="changePage(${page + 1})">Next</button>`;
+    }
+    paginationDiv.innerHTML = html;
+  }
+
+  // Function to change page.
+  function changePage(newPage) {
+    currentPage = newPage;
+    loadProducts();
+  }
+
+  // Handle filter form submission.
+  document.getElementById('filterForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    currentPage = 1;
+    loadProducts();
+  });
+
+  // Load products on page load.
+  loadProducts();
+</script>
+</body>
+</html>

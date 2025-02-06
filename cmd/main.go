@@ -1,20 +1,57 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"PeriFyGo/config"
+	"PeriFyGo/routes"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
-// main is the entry point of our Go application.
-// It will eventually run the web server.
 func main() {
-	fmt.Println("Hello from PeriFyGo!")
+	// Init MongoDB
+	mongoClient := config.InitMongoDB()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Simple test handler
-		w.Write([]byte("PeriFyGo says hi!"))
-	})
+	// Register routes
+	r := routes.RegisterRoutes()
 
-	// Let's run on port 8080
-	http.ListenAndServe(":8080", nil)
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r, // use mux router
+	}
+
+	go func() {
+		log.Println("Server running on http://localhost:8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServe error: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	// Disconnect from Mongo
+	if err := mongoClient.Disconnect(ctx); err != nil {
+		fmt.Println("Error disconnecting from Mongo:", err)
+	}
+
+	log.Println("Server exited properly.")
 }

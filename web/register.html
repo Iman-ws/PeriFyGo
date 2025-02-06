@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - PeriFyGo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Header with Navigation -->
+<header class="site-header">
+  <div class="container">
+    <h1 class="site-title">PeriFyGo</h1>
+    <nav class="site-nav">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="catalog.html">Catalog</a></li>
+        <li><a href="login.html">Login</a></li>
+        <li><a href="register.html" class="active">Register</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- Registration Form Section -->
+<section class="form-section">
+  <div class="container">
+    <h2>Create Your Account</h2>
+    <form id="registerForm" class="form">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" placeholder="example@mail.com" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Choose a strong password" required>
+      </div>
+      <button type="submit" class="btn">Register</button>
+    </form>
+    <div id="message" class="form-message"></div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; 2025 PeriFyGo. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  // Handle registration form submission
+  document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = {
+      name: document.getElementById('name').value,
+      email: document.getElementById('email').value,
+      password: document.getElementById('password').value
+    };
+    fetch('/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    })
+            .then(response => response.json())
+            .then(data => {
+              document.getElementById('message').innerHTML = `<p class="success">Chek your mail box! Your User ID: ${data.user_id}</p>`;
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              document.getElementById('message').innerHTML = `<p class="error">Registration failed.</p>`;
+            });
+  });
+</script>
+<script>
+  // Adjust navigation links based on login state.
+  document.addEventListener("DOMContentLoaded", function(){
+    // Retrieve token and userRole from localStorage.
+    const token = localStorage.getItem("jwtToken");
+    const role = localStorage.getItem("userRole"); // значение сохраняется при логине
+
+    // Get nav elements by class.
+    const navLogin = document.querySelectorAll(".nav-login");
+    const navRegister = document.querySelectorAll(".nav-register");
+    const navProfile = document.querySelectorAll(".nav-profile");
+    const navAdmin = document.querySelectorAll(".nav-admin");
+
+    if(token) {
+      // Hide Login and Register links.
+      navLogin.forEach(el => el.style.display = "none");
+      navRegister.forEach(el => el.style.display = "none");
+
+      // Show Profile link.
+      navProfile.forEach(el => el.style.display = "inline-block");
+
+      // If role is admin, show Admin Panel link.
+      if(role === "admin") {
+        navAdmin.forEach(el => el.style.display = "inline-block");
+      }
+    } else {
+      // If not logged in, hide Profile and Admin links.
+      navProfile.forEach(el => el.style.display = "none");
+      navAdmin.forEach(el => el.style.display = "none");
+    }
+  });
+</script>
+
+</body>
+
+</html>
