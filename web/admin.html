@@ -138,6 +138,31 @@
 </footer>
 
 <script>
+  document.addEventListener("DOMContentLoaded", async function () {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      console.error("No token found! Redirecting to login...");
+      window.location.href = "/login.html";
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/check-role", {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      });
+
+      if (response.status !== 200) {
+        console.warn("User is not an admin. Redirecting to home...");
+        window.location.href = "/index.html";
+      }
+    } catch (error) {
+      console.error("Error checking role:", error);
+      window.location.href = "/index.html";
+    }
+  });
   // Tab switching functionality
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', function() {

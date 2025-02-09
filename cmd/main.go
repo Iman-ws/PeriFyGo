@@ -13,6 +13,7 @@ import (
 	"PeriFyGo/config"
 	"PeriFyGo/routes"
 
+	"github.com/gorilla/handlers"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -23,13 +24,20 @@ func main() {
 	// Register routes
 	r := routes.RegisterRoutes()
 
+	// ✅ Добавляем CORS Middleware
+	corsHandler := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),                                       // Разрешить все источники (лучше заменить на ngrok)
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}), // Разрешить методы
+		handlers.AllowedHeaders([]string{"Authorization", "Content-Type"}),           // Разрешить заголовки
+	)
+
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: r, // use mux router
+		Handler: corsHandler(r), // Используем middleware CORS
 	}
 
 	go func() {
-		log.Println("Server running on http://localhost:8080")
+		log.Println("🚀 Server running on http://localhost:8080")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe error: %v", err)
 		}

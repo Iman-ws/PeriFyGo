@@ -31,15 +31,22 @@ func RegisterRoutes() *mux.Router {
 	r.Handle("/products/{id}", middlewares.AuthMiddleware(http.HandlerFunc(productCtrl.UpdateProduct), "admin")).Methods("PUT")
 	r.Handle("/products/{id}", middlewares.AuthMiddleware(http.HandlerFunc(productCtrl.DeleteProduct), "admin")).Methods("DELETE")
 
-	// Admin endpoints.
+	// ✅ Добавляем защиту для админки
+	r.Handle("/admin", middlewares.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./web/admin.html")
+	}), "admin"))
+
+	// ✅ API для проверки роли
+	r.HandleFunc("/api/check-role", authCtrl.CheckRole).Methods("GET")
+
+	// Admin API endpoints.
 	r.Handle("/admin/users", middlewares.AuthMiddleware(http.HandlerFunc(adminCtrl.GetAllUsers), "admin")).Methods("GET")
 	r.Handle("/admin/users/{id}", middlewares.AuthMiddleware(http.HandlerFunc(adminCtrl.GetUser), "admin")).Methods("GET")
 	r.Handle("/admin/users/{id}", middlewares.AuthMiddleware(http.HandlerFunc(adminCtrl.UpdateUser), "admin")).Methods("PUT")
 	r.Handle("/admin/users/{id}", middlewares.AuthMiddleware(http.HandlerFunc(adminCtrl.DeleteUser), "admin")).Methods("DELETE")
-	// Endpoint for sending message.
 	r.Handle("/admin/message", middlewares.AuthMiddleware(http.HandlerFunc(adminCtrl.SendMessage), "admin")).Methods("POST")
 
-	// Serve static files.
+	// ✅ Обычные статические файлы (но admin.html убран!)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
 
 	return r

@@ -40,10 +40,10 @@ func TestLoginAndProfileRedirect(t *testing.T) {
 	}
 
 	// Вводим данные тестового пользователя.
-	if err := emailInput.SendKeys("iman19012006@gmail.com"); err != nil {
+	if err := emailInput.SendKeys("meralieviman6@gmail.com"); err != nil {
 		t.Fatalf("Failed to send email: %v", err)
 	}
-	if err := passwordInput.SendKeys("Qwerty123"); err != nil {
+	if err := passwordInput.SendKeys("Iman2006"); err != nil {
 		t.Fatalf("Failed to send password: %v", err)
 	}
 

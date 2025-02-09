@@ -1,44 +1,45 @@
 package middlewares
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"PeriFyGo/utils"
 )
 
-// AuthMiddleware validates JWT token and checks if the user has the required role.
-// If requiredRole is an empty string, only token validity is checked.
+// JSON-ответ
+func jsonResponse(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+// AuthMiddleware – проверяет JWT токен + роль пользователя
 func AuthMiddleware(next http.Handler, requiredRole string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get token from Authorization header. Expected format: "Bearer <token>"
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			http.Error(w, "Unauthorized: No token provided", http.StatusUnauthorized)
 			return
 		}
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// Extract token by removing "Bearer " prefix.
-		tokenString := strings.TrimSpace(strings.Replace(authHeader, "Bearer", "", 1))
-		if tokenString == "" {
-			http.Error(w, "Invalid Authorization header", http.StatusUnauthorized)
-			return
-		}
-
-		// Validate token using our utility function.
-		claims, err := utils.ValidateToken(tokenString)
+		// Убираем "Bearer " из заголовка
+		tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := utils.ValidateToken(tokenStr)
 		if err != nil {
-			http.Error(w, "Invalid token: "+err.Error(), http.StatusUnauthorized)
+			jsonResponse(w, http.StatusUnauthorized, "Unauthorized: Invalid token")
 			return
 		}
 
-		// If a specific role is required, check it.
+		// Если требуется роль, проверяем её
 		if requiredRole != "" && claims.Role != requiredRole {
-			http.Error(w, "Access denied: insufficient permissions", http.StatusForbidden)
+			jsonResponse(w, http.StatusForbidden, "Forbidden: Access denied")
 			return
 		}
 
-		// If everything is ok, proceed to the next handler.
+		// Всё ок – передаем управление дальше
 		next.ServeHTTP(w, r)
 	})
 }
